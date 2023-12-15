@@ -5,6 +5,9 @@ const movieController = require('../controllers/movieController');
 
 router.use(auth);
 
+// Ruta para obtener las películas
+router.get('/movies', movieController.getMovies);
+
 // Ruta para obtener una película
 router.get('/movies/:id', movieController.getMovie);
 
