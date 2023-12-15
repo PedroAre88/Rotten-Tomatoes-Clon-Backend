@@ -5,51 +5,28 @@ const CriticRating = require('../models/criticratingSchema');
 
 
 exports.getMovies = async (req, res) => {
-    const genre = req.query.genre;
-    const minCriticRating = req.query.minCriticRating;
-   
     try {
-        let query = {};
+       const response = await axios.get(`https://api.themoviedb.org/3/discover/movie?api_key=8eba8d44e6c68643cf8ef89092494d71`);
+       const moviesData = response.data.results;
    
-        if (genre) {
-            const response = await axios.get(`https://api.themoviedb.org/3/discover/movie?api_key=8eba8d44e6c68643cf8ef89092494d71&with_genres=${genre}`);
-            const moviesData = response.data.results;
+       let movies = [];
+       for (let movieData of moviesData) {
+           const movie = new Movie({
+              id: movieData.id,
+              title: movieData.title,
+              genre: movieData.genre_ids.join(', '),
+              description: movieData.overview,
+           });
    
-            let movies = [];
-            for (let movieData of moviesData) {
-                const movie = new Movie({
-                   id: movieData.id,
-                   title: movieData.title,
-                   genre: movieData.genre_ids.join(', '),
-                   description: movieData.overview,
-                });
+           const savedMovie = await movie.save();
+           movies.push(savedMovie);
+       }
    
-                const savedMovie = await movie.save();
-                movies.push(savedMovie);
-            }
-   
-            return res.json(movies);
-        }
-   
-        if (minCriticRating) {
-            const criticRatings = await CriticRating.aggregate([
-                { $match: { movie: mongoose.Types.ObjectId(movieId) } },
-                { $group: { _id: null, averageCriticRating: { $avg: "$score" } } }
-            ]);
-   
-            const averageCriticRating = criticRatings.length > 0 ? criticRatings[0].averageCriticRating : null;
-   
-            if (averageCriticRating >= minCriticRating) {
-                query.averageCriticRating = { $gte: minCriticRating };
-            }
-        }
-   
-        const movies = await Movie.find(query);
-        res.json(movies);
+       res.json(movies);
     } catch (err) {
-        res.status(500).json({ message: err.message });
+       res.status(500).json({ message: err.message });
     }
-   }
+}
 
 
 exports.getMovie = async (req, res) => {
@@ -157,5 +134,36 @@ exports.getRecommendedMovies = async (req, res) => {
     } catch (err) {
         res.status(500).json({ message: err.message });
     }
-  }
+}
+
+exports.filterMovies = async (req, res) => {
+    const genre = req.query.genre;
+    const minCriticRating = req.query.minCriticRating;
+   
+    try {
+       let query = {};
+   
+       if (genre) {
+           query.genre = genre;
+       }
+   
+       if (minCriticRating) {
+           const criticRatings = await CriticRating.aggregate([
+               { $match: { movie: mongoose.Types.ObjectId(movieId) } },
+               { $group: { _id: null, averageCriticRating: { $avg: "$score" } } }
+           ]);
+   
+           const averageCriticRating = criticRatings.length > 0 ? criticRatings[0].averageCriticRating : null;
+   
+           if (averageCriticRating >= minCriticRating) {
+               query.averageCriticRating = { $gte: minCriticRating };
+           }
+       }
+   
+       const movies = await Movie.find(query);
+       res.json(movies);
+    } catch (err) {
+       res.status(500).json({ message: err.message });
+    }
+   }
    

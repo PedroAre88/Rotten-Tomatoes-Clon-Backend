@@ -17,4 +17,8 @@ router.get('/movies/:id/recommendations', movieController.getRecommendedMovies);
 // Ruta para buscar películas
 router.get('/movies/search', movieController.searchMovies);
 
+// Ruta para filtrar películas
+router.get('/movies/filter', movieController.filterMovies);
+
+
 module.exports = router;
